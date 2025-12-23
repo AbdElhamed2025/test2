@@ -1,0 +1,25 @@
+{
+  "name": "@vue-storefront/integration-boilerplate-playground-middleware",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=16.x"
+  },
+  "scripts": {
+    "dev": "nodemon",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@types/cors": "^2.8.17",
+    "@vue-storefront/integration-magento-api": "*",
+    "@vue-storefront/middleware": "^3.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "nodemon": "^3.1.0",
+    "ts-node-dev": "^2.0.0"
+  },
+  "files": [
+    "lib/**/*",
+    "server/**/*"
+  ]
+}
