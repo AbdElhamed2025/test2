@@ -86,6 +86,10 @@ if (!file_exists($csvFile)) {
 /** ==============================
  *  SERVICES
  *  ============================== */
+$resource = $objectManager->get(\Magento\Framework\App\ResourceConnection::class);
+$connection = $resource->getConnection();
+$reservationTable = $resource->getTableName('inventory_reservation');
+
 $sourceItemFactory = $objectManager->get(
     \Magento\InventoryApi\Api\Data\SourceItemInterfaceFactory::class
 );
@@ -98,13 +102,20 @@ $sourceItemsSave = $objectManager->get(
     \Magento\InventoryApi\Api\SourceItemsSaveInterface::class
 );
 
-$reservationFactory = $objectManager->get(
-    \Magento\InventoryReservationsApi\Api\Data\ReservationInterfaceFactory::class
-);
-
-$reservationAppend = $objectManager->get(
-    \Magento\InventoryReservationsApi\Model\AppendReservationsInterface::class
-);
+$reservationBuilder = null;
+$reservationAppend = null;
+try {
+    $reservationBuilder = $objectManager->get(
+        \Magento\InventoryReservationsApi\Model\ReservationBuilderInterface::class
+    );
+    $reservationAppend = $objectManager->get(
+        \Magento\InventoryReservationsApi\Model\AppendReservationsInterface::class
+    );
+} catch (\Throwable $e) {
+    // If InventoryReservationsApi isn't available, we'll fall back to direct DB insert.
+    $reservationBuilder = null;
+    $reservationAppend = null;
+}
 
 /** ==============================
  *  READ CSV / TSV
@@ -173,17 +184,33 @@ while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
     $sourceItem->setStatus(1);
 
     // 2) Release reservation by appending +qty (offsets existing negative reservations)
-    $reservation = $reservationFactory->create();
-    $reservation->setSku($sku);
-    $reservation->setQuantity($qty);
-    if (method_exists($reservation, 'setStockId')) {
-        $reservation->setStockId($stockId);
+    // Preferred: MSI AppendReservationsInterface + ReservationBuilderInterface
+    // Fallback: direct insert into inventory_reservation
+    $reservation = null;
+    if ($reservationBuilder && $reservationAppend) {
+        $reservation = $reservationBuilder
+            ->setSku($sku)
+            ->setQuantity($qty) // IMPORTANT: +qty releases reserved qty
+            ->setStockId($stockId)
+            ->setMetadata($reservationMetadata)
+            ->build();
     }
-    $reservation->setMetadata($reservationMetadata);
 
     if ($apply) {
         $sourceItemsSave->execute([$sourceItem]);
-        $reservationAppend->execute([$reservation]);
+        if ($reservation && $reservationAppend) {
+            $reservationAppend->execute([$reservation]);
+        } else {
+            $connection->insert($reservationTable, [
+                'stock_id' => $stockId,
+                'sku' => $sku,
+                'quantity' => (string)$qty,
+                'metadata' => json_encode(
+                    ['comment' => $reservationMetadata],
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
+            ]);
+        }
     }
 
     echo "✔ SKU {$sku} | stock {$oldQty} -> {$newQty} | reservation +" . $qty . "\n";
