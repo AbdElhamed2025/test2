@@ -12,29 +12,28 @@ This repo contains a **standalone PHP script** to:
 
 ## How to run (from your Magento root)
 
-1. Copy `revert_stock_and_reservations.php` and `revert_stock_list.tsv` into your Magento `pub/` directory.
-2. Dry-run first:
+1. Copy `revert_stock_and_reservations.php` into your Magento `pub/` directory.
+2. Put your input file at `var/import/restore_stock.csv` (CSV or TSV with header: `sku` + `qty` or `qty_remaining`).
+3. Dry-run first (default):
 
 ```bash
-php pub/revert_stock_and_reservations.php --input=revert_stock_list.tsv
+php pub/revert_stock_and_reservations.php
 ```
 
-3. Apply changes:
+4. To apply changes, edit the script and set `$apply = true;`, then run:
 
 ```bash
-php pub/revert_stock_and_reservations.php --input=revert_stock_list.tsv --apply
+php pub/revert_stock_and_reservations.php
 ```
 
-## Options
+## Config
 
-- `--source=default`: which MSI `source_code` to add qty back to
-- `--stock-id=1`: which MSI `stock_id` to use for reservations
-- `--reservation-mode=offset|force`:
-  - `offset` (default): only releases up to the **current negative** net reservation for that SKU
-  - `force`: always appends `+qty` reservation from the file
-- `--skip-stock`: only release reservations (don’t change source qty)
-- `--skip-reservations`: only add back to stock (don’t touch reservations)
-- `--quiet`: less output
+Edit these at the top of `pub/revert_stock_and_reservations.php`:
+
+- `$csvFile` (default: `BP . '/var/import/restore_stock.csv'`)
+- `$sourceCode` (default: `default`)
+- `$stockId` (default: `1`)
+- `$apply` (default: `false` / dry-run)
 
 ## Notes / safety
 
