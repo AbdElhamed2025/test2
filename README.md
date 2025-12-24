@@ -14,6 +14,17 @@ yarn dev
 - **Storefront**: `http://localhost:3000`
 - **Middleware**: `http://localhost:4000`
 
+## Run with Docker
+
+From the repo root (`/workspace`):
+
+```bash
+docker compose up --build
+```
+
+- **Storefront**: `http://localhost:3000`
+- **Middleware**: `http://localhost:4000`
+
 ## What’s included
 
 - **Catalog**: home, category pages, product page, search
