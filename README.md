@@ -12,17 +12,17 @@ This repo contains a **standalone PHP script** to:
 
 ## How to run (from your Magento root)
 
-1. Copy `revert_stock_and_reservations.php` and `revert_stock_list.tsv` into your Magento root (same folder as `app/` and `bin/`).
+1. Copy `revert_stock_and_reservations.php` and `revert_stock_list.tsv` into your Magento `pub/` directory.
 2. Dry-run first:
 
 ```bash
-php revert_stock_and_reservations.php --input=revert_stock_list.tsv
+php pub/revert_stock_and_reservations.php --input=revert_stock_list.tsv
 ```
 
 3. Apply changes:
 
 ```bash
-php revert_stock_and_reservations.php --input=revert_stock_list.tsv --apply
+php pub/revert_stock_and_reservations.php --input=revert_stock_list.tsv --apply
 ```
 
 ## Options

@@ -18,6 +18,12 @@ declare(strict_types=1);
  *  php revert_stock_and_reservations.php --input=revert_stock_list.tsv --reservation-mode=force --apply
  */
 
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    echo "This script must be run from CLI.\n";
+    exit(1);
+}
+
 use Magento\Framework\App\Bootstrap;
 use Magento\Framework\App\State;
 use Magento\Framework\App\ResourceConnection;
@@ -225,30 +231,58 @@ function readSkuQtyFile(string $path): array
     return $out;
 }
 
+/**
+ * Find Magento root by walking up until app/bootstrap.php is found.
+ * Works when the script is placed in pub/ (or deeper) and executed from anywhere.
+ */
+function findMagentoRoot(string $startDir, int $maxLevelsUp = 6): string
+{
+    $dir = $startDir;
+    for ($i = 0; $i <= $maxLevelsUp; $i++) {
+        $bootstrap = $dir . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'bootstrap.php';
+        if (is_file($bootstrap)) {
+            return $dir;
+        }
+        $parent = dirname($dir);
+        if ($parent === $dir) {
+            break;
+        }
+        $dir = $parent;
+    }
+    throw new RuntimeException("Cannot find Magento root (missing app/bootstrap.php) starting from: {$startDir}");
+}
+
 // -----------------------------
 // Main
 // -----------------------------
 
 $args = parseArgs($argv);
+$scriptDir = __DIR__;
 $inputPath = $args['input'];
 
-// If the user provided a relative path, resolve relative to current working directory
-if (!str_starts_with($inputPath, '/')) {
-    $inputPath = getcwd() . DIRECTORY_SEPARATOR . $inputPath;
+// If the user provided a relative path, resolve relative to the script directory (recommended when script lives in pub/)
+if (!str_starts_with($inputPath, DIRECTORY_SEPARATOR)) {
+    $inputPath = $scriptDir . DIRECTORY_SEPARATOR . $inputPath;
 }
 
-// Must be executed from Magento root (needs app/bootstrap.php)
-$bootstrapPath = getcwd() . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'bootstrap.php';
-if (!is_file($bootstrapPath)) {
-    fwrite(STDERR, "Cannot find app/bootstrap.php. Run this script from your Magento root.\n");
+try {
+    $magentoRoot = findMagentoRoot($scriptDir);
+} catch (Throwable $e) {
+    fwrite(STDERR, $e->getMessage() . PHP_EOL);
+    fwrite(STDERR, "Tip: place this script in Magento 'pub/' and run: php pub/" . basename(__FILE__) . " ...\n");
     exit(2);
 }
+
+$bootstrapPath = $magentoRoot . DIRECTORY_SEPARATOR . 'app' . DIRECTORY_SEPARATOR . 'bootstrap.php';
 
 $skuQty = readSkuQtyFile($inputPath);
 if (count($skuQty) === 0) {
     fwrite(STDERR, "No valid rows found in input file: {$inputPath}\n");
     exit(3);
 }
+
+// Many Magento services assume CWD = Magento root.
+@chdir($magentoRoot);
 
 require $bootstrapPath;
 
