@@ -1,0 +1,15 @@
+{
+  "extends": "@vue-storefront/integrations-tsconfig/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "./lib",
+    "declarationDir": "./lib",
+    "declaration": true,
+    "rootDir": ".",
+    "esModuleInterop": true,
+    "module": "Node16",
+    "moduleResolution": "Node16"
+  },
+  "exclude": ["node_modules"],
+  "include": ["src/**/*.ts"]
+}

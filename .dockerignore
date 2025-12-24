@@ -1,0 +1,13 @@
+.git
+**/.git
+
+**/node_modules
+**/.nuxt
+**/.output
+**/.nitro
+**/.turbo
+**/coverage
+**/lib
+
+**/*.log
+
